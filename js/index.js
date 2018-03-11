@@ -1,7 +1,7 @@
 // prepare to handle url
 var paths = location.pathname.split('/') || [];
-var ethercalc_name     = paths[1] || "pdgio";
-var current_iframe_url = paths[2] ? unescape(unescape(paths[2])) : null;
+var ethercalc_name     = paths[1] || "";
+var current_iframe_url = paths[1] ? unescape(unescape(paths[2])) : null;
 var history_state={};
 // prepare to handle backend data (from ethercalc or google spreadsheet)
 var csv_api_source = "";
@@ -18,70 +18,76 @@ var foldr_histories = JSON.parse(localStorage.getItem("hackfoldr")) || [];
 var foldr_scale = JSON.parse(localStorage.getItem("hackfoldr-scale")) || "";
 
 // check where the csv will come from, ethercalc or gsheet?
-if(ethercalc_name.length < 40){
-  csv_api_source = 'https://ethercalc.org/_/'+ethercalc_name+'/csv';
-  csv_api_source_type = "ethercalc";
-}else{
-  csv_api_source = 'docs.google.com/feeds/download/spreadsheets/Export?key='+ethercalc_name+'&exportFormat=csv&gid=0';
-  csv_api_source_type = "google";
-  // because posting to gsheet is hard to implement, we don't offer submit feature when using gsheet. since it's easy to moderate editing in gsheet, you can just let users edit or comment on it.
-  $("#topbar .add.to.list, #topbar .submit.segment").remove();
-};
+// changed for a static csv
+csv_api_source = './menu.csv';
+csv_api_source_type = 'static';
+$("#topbar .add.to.list, #topbar .submit.segment").remove();
+//if(ethercalc_name.length < 40){
+//  csv_api_source = 'https://ethercalc.org/_/'+ethercalc_name+'/csv';
+//  csv_api_source_type = "ethercalc";
+//}else{
+//  csv_api_source = 'docs.google.com/feeds/download/spreadsheets/Export?key='+ethercalc_name+'&exportFormat=csv&gid=0';
+//  csv_api_source_type = "google";
+//  // because posting to gsheet is hard to implement, we don't offer submit feature when using gsheet. since it's easy to moderate editing in gsheet, you can just let users edit or comment on it.
+//  $("#topbar .add.to.list, #topbar .submit.segment").remove();
+//};
 
 // let user sort #toc menu by drag and drop, a very user friendly feature suggest by @ipa. using jquery ui sortable. (also, ethercalc only)
-var sort_ethercalc = function(sort_initial_row, sort_target_row){
-  $.ajax({
-    url: "https://ethercalc.org/_/"+ethercalc_name,
-    contentType: 'text/plain',
-    data: 'moveinsert A'+sort_initial_row+':F'+sort_initial_row+' A'+sort_target_row,
-    type: 'POST',
-    processData: false
-  // to avoid race condition (ethercalc data is re-compiled before post action is finished), use promise mode on $.ajax and prospond compile action for 1 sec. thanks @audreyt :3 :3
-  }).then(function(){ setTimeout(function(){
-    $("#toc .menu").html("");
-    compile_ethercalc();
-  }, 1000) });
-}
+// no
+//var sort_ethercalc = function(sort_initial_row, sort_target_row){
+//  $.ajax({
+//    url: "https://ethercalc.org/_/"+ethercalc_name,
+//    contentType: 'text/plain',
+//    data: 'moveinsert A'+sort_initial_row+':F'+sort_initial_row+' A'+sort_target_row,
+//    type: 'POST',
+//    processData: false
+//  // to avoid race condition (ethercalc data is re-compiled before post action is finished), use promise mode on $.ajax and prospond compile action for 1 sec. thanks @audreyt :3 :3
+//  }).then(function(){ setTimeout(function(){
+//    $("#toc .menu").html("");
+//    compile_ethercalc();
+//  }, 1000) });
+//}
+
 // for jquery ui sortable
-var sort_action = {
-  update: function( event, ui ) {
-    // previously we have assigned each menu item an id attribute while reading csv data. ha!
-    var sort_initial_row = ui.item.attr("id");
-    // get an array with new item order as array index, and old item row number as array value. using a jquery ui built-in function.
-    var new_order = $(this).sortable("toArray");
-    // find the old row name of the next sibling of the dragged item.
-    var sort_target_neighbor = new_order[$.inArray(sort_initial_row, new_order)+1]
-    // but if item is dragged to bottom, there would be no neighbor. so use the one with largest row number instead.
-    if($.type(sort_target_neighbor)==="undefined"){
-      new_order = $.map(new_order, function(value, index){
-        return parseInt(value);
-      });
-      var sort_target_neighbor_row = Math.max.apply(Math, new_order);
-      var sort_target_row = sort_target_neighbor_row+1;
-    }else{
-      var sort_target_row = parseInt(sort_target_neighbor);
-    }
-    // convert row numbers from string to number
-    var sort_initial_row = parseInt(sort_initial_row);
-    //console.log(sort_initial_row+" to "+(sort_target_row-1));
-    sort_ethercalc(sort_initial_row, sort_target_row);
-  }
-};
+//var sort_action = {
+//  update: function( event, ui ) {
+//    // previously we have assigned each menu item an id attribute while reading csv data. ha!
+//    var sort_initial_row = ui.item.attr("id");
+//    // get an array with new item order as array index, and old item row number as array value. using a jquery ui built-in function.
+//    var new_order = $(this).sortable("toArray");
+//    // find the old row name of the next sibling of the dragged item.
+//    var sort_target_neighbor = new_order[$.inArray(sort_initial_row, new_order)+1]
+//    // but if item is dragged to bottom, there would be no neighbor. so use the one with largest row number instead.
+//    if($.type(sort_target_neighbor)==="undefined"){
+//      new_order = $.map(new_order, function(value, index){
+//        return parseInt(value);
+//      });
+//      var sort_target_neighbor_row = Math.max.apply(Math, new_order);
+//      var sort_target_row = sort_target_neighbor_row+1;
+//    }else{
+//      var sort_target_row = parseInt(sort_target_neighbor);
+//    }
+//    // convert row numbers from string to number
+//    var sort_initial_row = parseInt(sort_initial_row);
+//    //console.log(sort_initial_row+" to "+(sort_target_row-1));
+//    sort_ethercalc(sort_initial_row, sort_target_row);
+//  }
+//};
 
 // compile csv data from either ethercalc or google spreadsheet
 var compile_json = function(rows){
 
   // jump from ethercalc to google spreadsheet when A1 is filled with a gsheet id
-  if(csv_api_source_type == "ethercalc" && !rows[0][0].match(/^#/) && rows[0][0].length >= 40){
-    // reset all related variables and compile again
-    csv_api_source = 'docs.google.com/feeds/download/spreadsheets/Export?key='+rows[0][0]+'&exportFormat=csv&gid=0';
-    csv_api_source_type = "google";
-    csv_api_source_id = rows[0][0].trim();
-    // remember? we don't support submit forms with gsheet. so need to remove the + button as well as the form segment.
-    $("#topbar .add.to.list, #topbar .submit.segment").remove();
-    compile_ethercalc();
-    return
-  }
+//  if(csv_api_source_type == "ethercalc" && !rows[0][0].match(/^#/) && rows[0][0].length >= 40){
+//    // reset all related variables and compile again
+//    csv_api_source = 'docs.google.com/feeds/download/spreadsheets/Export?key='+rows[0][0]+'&exportFormat=csv&gid=0';
+//    csv_api_source_type = "google";
+//    csv_api_source_id = rows[0][0].trim();
+//    // remember? we don't support submit forms with gsheet. so need to remove the + button as well as the form segment.
+//    $("#topbar .add.to.list, #topbar .submit.segment").remove();
+//    compile_ethercalc();
+//    return
+//  }
 
   // at the first beginning, we don't have a foldr title. so we are going to get the title before any other thing happens.
   var got_title = false
@@ -274,16 +280,17 @@ var compile_json = function(rows){
     }
 
     // set iframe src?
+    // pas possible
     if(current_iframe_url == "edit"){
-      if(csv_api_source_type=="ethercalc"){
-        iframe_src = 'https://ethercalc.org/'+csv_api_source_id;
-      }else{
-        iframe_src = 'https://docs.google.com/spreadsheets/d/'+csv_api_source_id+'/edit';
-      };
-      $("title").text("編輯 | "+current_foldr_name+" | hackfoldr");
-      $("#topbar .edit.table").hide();
-      $("#topbar .refresh.table").show();
-      $("#topbar .add.to.list").show();
+//      if(csv_api_source_type=="ethercalc"){
+//        iframe_src = 'https://ethercalc.org/'+csv_api_source_id;
+//      }else{
+//        iframe_src = 'https://docs.google.com/spreadsheets/d/'+csv_api_source_id+'/edit';
+//      };
+//      $("title").text("編輯 | "+current_foldr_name+" | hackfoldr");
+//      $("#topbar .edit.table").hide();
+//      $("#topbar .refresh.table").show();
+//      $("#topbar .add.to.list").show();
     }else if((new RegExp(context.url+"/?")).test(current_iframe_url)){
       iframe_src = current_iframe_url;
     }else if(/^https:\/\/.*.hackpad.com\//.test(context.url)){
@@ -518,31 +525,32 @@ var compile_json = function(rows){
 
 // prepare to load or refresh csv data
 var compile_ethercalc = function(){
-  if(csv_api_source_type=="ethercalc"){
-    // compile ethercalc csv
-    $.get(csv_api_source).pipe(CSV.parse).done(compile_json);
-  }else{
-    // compile gsheet-tabletop json
-    Tabletop.init({
-      key: csv_api_source_id,
-      callback: function(data, tabletop){
-        var columnNames = tabletop.models[tabletop.model_names[0]].column_names
-        data = data.map(function (o) {
-          var result = ['', '', '', '', '']
-
-          columnNames.forEach(function(columnName, idx){
-            if(o[columnName]) {
-              result[idx] = o[columnName];
-            }
-          });
-
-          return result;
-        });
-        compile_json(data);
-      },
-      simpleSheet: true
-    });
-  }
+  $.get(csv_api_source).pipe(CSV.parse).done(compile_json);
+//  if(csv_api_source_type=="ethercalc"){
+//    // compile ethercalc csv
+//    $.get(csv_api_source).pipe(CSV.parse).done(compile_json);
+//  }else{
+//    // compile gsheet-tabletop json
+//    Tabletop.init({
+//      key: csv_api_source_id,
+//      callback: function(data, tabletop){
+//        var columnNames = tabletop.models[tabletop.model_names[0]].column_names
+//        data = data.map(function (o) {
+//          var result = ['', '', '', '', '']
+//
+//          columnNames.forEach(function(columnName, idx){
+//            if(o[columnName]) {
+//              result[idx] = o[columnName];
+//            }
+//          });
+//
+//          return result;
+//        });
+//        compile_json(data);
+//      },
+//      simpleSheet: true
+//    });
+//  }
 };
 
 // load page~
@@ -786,7 +794,7 @@ $("#topbar .edit.table").on("click tap", function(){
         $("#toc .sortable").sortable(sort_action);
       }
     }else if(csv_api_source_type=="google"){
-      $("#topbar .edit.table").attr("href",'https://docs.google.com/spreadsheets/d/'+csv_api_source_id+'/edit');
+//      $("#topbar .edit.table").attr("href",'https://docs.google.com/spreadsheets/d/'+csv_api_source_id+'/edit');
     }
     // change url
     history.pushState(history_state,'', '/'+ethercalc_name+'/edit');
