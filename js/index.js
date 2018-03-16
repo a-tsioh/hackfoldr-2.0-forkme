@@ -19,7 +19,7 @@ var foldr_scale = JSON.parse(localStorage.getItem("hackfoldr-scale")) || "";
 
 // check where the csv will come from, ethercalc or gsheet?
 // changed for a static csv
-csv_api_source = './menu.csv';
+csv_api_source = 'https://raw.githubusercontent.com/a-tsioh/hackfoldr-2.0-pperso/master/_public/menu.csv';
 csv_api_source_type = 'static';
 $("#topbar .add.to.list, #topbar .submit.segment").remove();
 //if(ethercalc_name.length < 40){
