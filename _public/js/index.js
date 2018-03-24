@@ -1,5 +1,5 @@
 // prepare to handle url
-var paths = location.pathname.split('/') || [];
+var paths = decodeURI(location.pathname).split('/') || [];
 var ethercalc_name     = paths[1] || "";
 var current_iframe_url = paths[1] ? unescape(unescape(paths[2])) : null;
 var history_state={};
@@ -7,6 +7,7 @@ var history_state={};
 var csv_api_source = "";
 var csv_api_source_type = "";
 var csv_api_source_id = ethercalc_name;
+$("#edittab").attr("data-url",'https://ethercalc.org/'+csv_api_source_id);
 // prepare to accept foldr options set in ethercalc
 var hide_sheet = false;
 var sort_sheet = true;
@@ -17,9 +18,10 @@ var iframe_src;
 var foldr_histories = JSON.parse(localStorage.getItem("hackfoldr")) || [];
 var foldr_scale = JSON.parse(localStorage.getItem("hackfoldr-scale")) || "";
 
+var tabnames_mapping = {'cafe': 'cafe-tab', 'help': 'help-tab', 'edit': 'edit-tab'};
 // check where the csv will come from, ethercalc or gsheet?
 // changed for a static csv
-csv_api_source = './menu.csv';
+csv_api_source = 'https://raw.githubusercontent.com/a-tsioh/hackfoldr-2.0-pperso/master/_public/menu.csv';
 csv_api_source_type = 'static';
 $("#topbar .add.to.list, #topbar .submit.segment").remove();
 //if(ethercalc_name.length < 40){
@@ -94,7 +96,7 @@ var compile_json = function(rows){
   // #toc menu items are at root level by default. if depth == 1, they will be in level 1 submenu, which is wrapped inside an semantic ui accordion
   var depth = 0
 
-  var link_template_source ='<a href="{{url}}" target="{{target}}" id="{{id}}" class="{{type}} item"><i class="icon {{icon}}" data-content="{{subject}}"></i>{{subject}}</a>';
+  var link_template_source ='<a id="{{id}}" data-tab="tab-{{id}}" class="{{type}} item"><i class="icon {{icon}}" data-content="{{subject}}"></i>{{subject}}</a>';
   //var link_template_source ='<a href="{{url}}" target="{{target}}" class="{{type}} item"><i class="icon {{icon}}"></i>{{subject}}</a>';
   var link_template = Handlebars.compile(link_template_source);
 
@@ -103,6 +105,14 @@ var compile_json = function(rows){
 
   // for link items
   var padagraph_ids = {}
+  var activeTab = "active" // to activate the first tab
+
+  var parse_pdg_options = function(str) {
+    return str.split(" ")
+              .filter(x => x != "")
+              .map(x => x.split(":"));
+  }
+
   var add_link = function(row_index, row){
 
     // prepare to handle link items. these variables will be used with link_template.
@@ -130,7 +140,11 @@ var compile_json = function(rows){
     //PDG: transform URL
     if(link_url.match(/PDG:[a-zA-Z]+/)){ 
       var [_,id] = row[0].match(/PDG:([a-zA-Z]+)/);
+      var options = parse_pdg_options(row[2])
       link_url = "http://botapad.padagraph.io/import/igraph.html?s=" + padagraph_ids[id] + "&nofoot=1&gid=" + id;
+      options.forEach(opt => {
+        link_url += "&"+ opt[0] + "=" + opt[1];
+      });
       row[0] = link_url
       row[3] = "red graph"
     }
@@ -230,7 +244,8 @@ var compile_json = function(rows){
     var context = {id: row_index+1, url: link_url, subject: row[1], icon: link_icon, type: link_type, target: link_target};
     // and send it into the html template (meanwhile, assign it an id for jquery sortable)
     var $link_element = $(link_template(context));
-
+    tabnames_mapping[row[1]] = 'tab-'+ (row_index+1);
+    $link_element.on('click', function(e) {window.history.pushState(row[1],row[1], "/" +  ethercalc_name + "/" + row[1])});
     // parse link labels
     var link_label = row[3].trim();
     var link_label_color = "";
@@ -278,7 +293,9 @@ var compile_json = function(rows){
     }else{
       $('#toc .ui.vertical.menu').append($link_element);
     }
-
+    // append tab item to the main page
+    var newTab = $('<div class="frame ui bottom attached tab" data-tab="tab-'+ (row_index + 1 ) +'" data-url="'+ link_url +'"><iframe name="iframe-' +(row_index + 1) + '"/></div>');
+    $('#mainzone').append(newTab);
     // set iframe src?
     // pas possible
     if(current_iframe_url == "edit"){
@@ -451,6 +468,7 @@ var compile_json = function(rows){
   var new_window_icon = "<i class='icon forward mail'></i>";
   var open_link_in_new_window_or_not = function(){
     link_url = $(this).attr("href");
+    link_url = link_url ? link_url : "ras";
     if(link_url.match(/^.*.plus.google.com\//)) {
       return true;
     } else if(link_url.match(/^.*.kktix.cc\//)) {
@@ -521,6 +539,16 @@ var compile_json = function(rows){
 
   // enable popup
   $('i.icon').popup();
+
+  // enable tabs
+  $('#pdg a').tab({onFirstLoad: function(a,b,c) {var u = this.attributes['data-url'].value  ; this.firstChild.setAttribute('src', u) }, history: false});
+  var current_tabname  = current_iframe_url;
+  if(tabnames_mapping[current_tabname]) {
+    $('#pdg a').tab('change tab', tabnames_mapping[current_tabname]);
+  }
+  else {
+    $('#pdg a').tab('change tab', 'help-tab');
+  }
 }
 
 // prepare to load or refresh csv data
@@ -743,7 +771,7 @@ $("#sidebar").on("click tap", "a.link.item", function(event){
   if(iframe_path.match(/^https:\/\/.*.hackpad.com\//)){
     iframe_path = iframe_path.split(/\//).pop();
   }
-  history.pushState(history_state,'', '/'+ethercalc_name+'/'+encodeURIComponent(encodeURIComponent(iframe_path))) ;
+  //history.pushState(history_state,'', '/'+ethercalc_name+'/'+encodeURIComponent(encodeURIComponent(iframe_path))) ;
 
   // when leaving ethercalc, show edit icon again
   if(event.target.target !== "_blank"){
@@ -788,7 +816,7 @@ $("#topbar .edit.table").on("click tap", function(){
   // show sheet
   if(!hide_sheet){
     if(csv_api_source_type=="ethercalc"){
-      $("#topbar .edit.table").attr("href",'https://ethercalc.org/'+csv_api_source_id);
+      $("#topbar .edit.table").attr("data-url",'https://ethercalc.org/'+csv_api_source_id);
       // make foldr items sortable
       if(sort_sheet){
         $("#toc .sortable").sortable(sort_action);
@@ -797,11 +825,12 @@ $("#topbar .edit.table").on("click tap", function(){
 //      $("#topbar .edit.table").attr("href",'https://docs.google.com/spreadsheets/d/'+csv_api_source_id+'/edit');
     }
     // change url
-    history.pushState(history_state,'', '/'+ethercalc_name+'/edit');
+    //history.pushState(history_state,'', '/'+ethercalc_name+'/edit');
     // change page title
     $("title").text("編輯 | "+current_foldr_name+" | hackfoldr");
     // inactive #toc items
-    $("#toc a.link.item").removeClass("active");
+    //$("#toc a.link.item").removeClass("active");
+    $("a.edittab").tab('change tab','edit-tab');
   }
   // switch icon
   $("#topbar .edit.table").hide();
@@ -814,3 +843,16 @@ $("#topbar .foldr.title").attr("href",'/'+ethercalc_name);
 
 // enable popup
 $('i.icon').popup();
+
+// enable tabs
+//$('.helptab').tab();
+$('.edittab').tab({onFirstLoad: function(a,b,c) {var u = this.attributes['data-url'].value  ; this.firstChild.setAttribute('src', u) }});
+//$('#pdg').tab({context: '#pdg', history: true});
+
+$('.helptab').on('click', function(e) {window.history.pushState("/","/", "/" +  ethercalc_name)});
+$('.cafetab').on('click', function(e) {window.history.pushState("/cafe","/cafe", "/" +  ethercalc_name + "/cafe")});
+$('.edittab').on('click', function(e) {window.history.pushState("/edit","/edit", "/" +  ethercalc_name + "/edit")});
+window.onpopstate = function(event) {
+$('#pdg a').tab('change tab', tabnames_mapping[event.state]);
+}
+

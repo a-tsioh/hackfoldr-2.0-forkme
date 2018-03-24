@@ -204,6 +204,7 @@ a, a:link {
 
 #wrapper {
   position: absolute;
+  position: relative;
   left: 0;
   top: 0;
   bottom: 0;
@@ -220,7 +221,7 @@ a, a:link {
   transition-timing-function: ease; }
   @media screen and (max-width: 1024px) {
     #wrapper {
-      padding-top: 2.75rem;
+      padding-top: 0;
       padding-left: 0;
       height: auto; } }
   @media screen and (min-width: 1025px) {
@@ -228,6 +229,14 @@ a, a:link {
       padding-left: 20rem; }
     #wrapper.desktop-collapsed-layout {
       padding-left: 3rem; } }
+  #wrapper #mainzone {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0; }
   #wrapper .frame {
     position: relative;
     width: 100%;
@@ -236,7 +245,7 @@ a, a:link {
     top: 0;
     bottom: 0;
     right: 0; }
-  #wrapper #iframe {
+  #wrapper iframe {
     -webkit-box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.5);
     -moz-box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.5);
     box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.5);
@@ -248,7 +257,7 @@ a, a:link {
     z-index: 3;
     background-color: #f9f9f9; }
     @media screen and (max-width: 1024px) {
-      #wrapper #iframe {
+      #wrapper iframe {
         z-index: 0; } }
   #wrapper .normal.size.frame {
     width: 100%;
