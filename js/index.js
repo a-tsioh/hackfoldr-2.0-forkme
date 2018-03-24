@@ -1,7 +1,7 @@
 // prepare to handle url
 var paths = decodeURI(location.pathname).split('/') || [];
-var ethercalc_name     = paths[1] || "";
-var current_iframe_url = paths[1] ? unescape(unescape(paths[2])) : null;
+var ethercalc_name     = ""; //paths[1] || "";
+var current_iframe_url = paths[1] ? unescape(unescape(paths[1])) : null;
 var history_state={};
 // prepare to handle backend data (from ethercalc or google spreadsheet)
 var csv_api_source = "";
@@ -245,7 +245,7 @@ var compile_json = function(rows){
     // and send it into the html template (meanwhile, assign it an id for jquery sortable)
     var $link_element = $(link_template(context));
     tabnames_mapping[row[1]] = 'tab-'+ (row_index+1);
-    $link_element.on('click', function(e) {window.history.pushState(row[1],row[1], "/" +  ethercalc_name + "/" + row[1])});
+    $link_element.on('click', function(e) {window.history.pushState(row[1],row[1], "/" + row[1])});
     // parse link labels
     var link_label = row[3].trim();
     var link_label_color = "";
@@ -547,7 +547,7 @@ var compile_json = function(rows){
     $('#pdg a').tab('change tab', tabnames_mapping[current_tabname]);
   }
   else {
-    $('#pdg a').tab('change tab', 'help-tab');
+    $('#pdg a').tab('change tab', 'tab-4');
   }
 }
 
@@ -839,7 +839,7 @@ $("#topbar .edit.table").on("click tap", function(){
 });
 
 // add href attr to foldr title
-$("#topbar .foldr.title").attr("href",'/'+ethercalc_name);
+$("#topbar .foldr.title").attr("href",'/');
 
 // enable popup
 $('i.icon').popup();
@@ -849,9 +849,6 @@ $('i.icon').popup();
 $('.edittab').tab({onFirstLoad: function(a,b,c) {var u = this.attributes['data-url'].value  ; this.firstChild.setAttribute('src', u) }});
 //$('#pdg').tab({context: '#pdg', history: true});
 
-$('.helptab').on('click', function(e) {window.history.pushState("/","/", "/" +  ethercalc_name)});
-$('.cafetab').on('click', function(e) {window.history.pushState("/cafe","/cafe", "/" +  ethercalc_name + "/cafe")});
-$('.edittab').on('click', function(e) {window.history.pushState("/edit","/edit", "/" +  ethercalc_name + "/edit")});
 window.onpopstate = function(event) {
 $('#pdg a').tab('change tab', tabnames_mapping[event.state]);
 }
